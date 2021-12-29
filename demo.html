@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      .container {
+        width: 400px
+      }
+
+      #video {
+        width: 100%
+        height: 200px
+      }
+
+      .input-container {
+        width: 100%
+        display: flex
+      }
+
+      #videoSrcInput {
+        flex: 1
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="video-container">
+        <video id="video" controls="controls"></video>
+      </div>
+      <div class="input-container">
+        <input id="videoSrcInput" type="text" placeholder="请输入flv地址" value="http://localhost:1001/2154848-1-64.flv" />
+        <button onclick="load()">加载</button>
+      </div>
+    </div>
+    <script src="./dist/flv.js"></script>
+    <script>
+      let charsReceived = new Uint8Array()
+      const FLV = new flvjs.createFlv()
+
+      function load() {
+        const src = document.querySelector('#videoSrcInput').value
+        const params = new Request(src, {
+          method: 'GET',
+          cache: 'reload',
+          mode: 'cors',
+        })
+        fetch(params).then(function (response) {
+          const reader = response.body.getReader()
+          return readr(reader)
+        })
+      }
+
+      function readr(reader) {
+        return reader.read().then(function (result) {
+          const chunk = result.value // Uint8Array
+          if (result.done) {
+            console.log('==> reader.read() done')
+            return reader.cancel()
+          }
+          const cache = new Uint8Array(charsReceived.length + chunk.length)
+          cache.set(charsReceived, 0)
+          cache.set(chunk, charsReceived.length)
+          console.log('==> cache', cache.length, cache)
+          const offest = FLV.setFlv(cache)
+          charsReceived = cache.slice(offest)
+          console.log('==> offest', offest)
+          console.log('==> charsReceived', charsReceived)
+          return readr(reader)
+        })
+      }
+    </script>
+  </body>
+</html>
